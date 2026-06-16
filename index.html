@@ -177,13 +177,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     // ==================== НАСТРОЙКИ ====================
-    // ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ ИЗ SUPABASE:
     const SUPABASE_URL = 'https://nelkcbzsjxinhydqxijx.supabase.co/rest/v1/';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbmh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzY0NjIsImV4cCI6MjA5NzIxMjQ2Mn0.-_rVVjxlnChD0iQikxTXK0Rixr-I3VvQt7V3WQ5quD0';
     // ==================================================
 
-    // СОЗДАЁМ КЛИЕНТ
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // СОЗДАЁМ КЛИЕНТ (ОДИН РАЗ!)
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const NAMES = ['Илья', 'Ваня', 'Федя'];
     const TIMES = ['12:00', '15:00', '18:00'];
@@ -218,7 +217,7 @@
 
     async function loadFromSupabase() {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await sb
                 .from('schedule')
                 .select('date_key, time_key, checked');
 
@@ -233,15 +232,14 @@
             render();
         } catch (err) {
             console.error('Ошибка загрузки:', err);
-            updateStatus(false, 'Ошибка загрузки: ' + err.message);
-            // Всё равно показываем календарь, но с пустыми чекбоксами
+            updateStatus(false, 'Ошибка загрузки');
             render();
         }
     }
 
     async function saveToSupabase(dateKey, timeKey, checked) {
         try {
-            const { error } = await supabase
+            const { error } = await sb
                 .from('schedule')
                 .upsert({ date_key: dateKey, time_key: timeKey, checked: checked }, { onConflict: 'date_key, time_key' });
 
@@ -250,7 +248,6 @@
         } catch (err) {
             console.error('Ошибка сохранения:', err);
             updateStatus(false, '❌ Ошибка сохранения');
-            // Откатываем
             const key = getKey(dateKey, timeKey);
             state[key] = !checked;
             render();
@@ -333,7 +330,6 @@
         });
     }
 
-    // ЗАПУСК
     loadFromSupabase();
 
     setInterval(() => {
@@ -341,4 +337,4 @@
     }, 30000);
 </script>
 </body>
-</html>
+</html> в
