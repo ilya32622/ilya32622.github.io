@@ -69,8 +69,6 @@
             color: #1f6e93;
             font-weight: 500;
         }
-
-        /* ----- ФИЛЬТРЫ ----- */
         .filters {
             display: flex;
             flex-wrap: wrap;
@@ -108,7 +106,6 @@
             color: #4b6f88;
             margin-right: 4px;
         }
-
         .month-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -208,7 +205,6 @@
             color: #4b6f88;
             font-size: 1.1rem;
         }
-
         @media (max-width: 600px) {
             .container {
                 padding: 16px;
@@ -247,7 +243,6 @@
         <span class="synced">⎇ общие данные</span>
     </div>
 
-    <!-- ФИЛЬТРЫ -->
     <div class="filters" id="filters">
         <span class="label">📆 Показать:</span>
         <div class="filter-group">
@@ -276,13 +271,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 <script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-</script>
-<script>
-    // ==================== НАСТРОЙКИ ====================
+    // ============================================================
+    // ↓↓↓ ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE (Settings → API) ↓↓↓
+    // ============================================================
     const SUPABASE_URL = 'https://nelkcbzsjxinhydqxijx.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbnh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5MjU0MDYsImV4cCI6MjA2MTUwMTQwNn0.n1ZlU3fOU-dLWDJdxBUnmwRKKtibh64-Qj4cO-xLxNg';
-    // ==================================================
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbmh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzY0NjIsImV4cCI6MjA5NzIxMjQ2Mn0.-_rVVjxlnChD0iQikxTXK0Rixr-I3VvQt7V3WQ5quD0';
+    // ============================================================
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -297,7 +291,7 @@
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
+        return y + '-' + m + '-' + d;
     }
 
     function formatDate(date) {
@@ -305,37 +299,38 @@
     }
 
     function getKey(dateStr, timeKey) {
-        return `${dateStr}_${timeKey}`;
+        return dateStr + '_' + timeKey;
     }
 
-    // ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ==========
     function getNameForDate(date, startDate) {
-        const diffDays = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-        let index = diffDays % 3;
-        if (index < 0) index += 3; // -1 → 2, -2 → 1
+        var diffDays = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+        var index = diffDays % 3;
+        if (index < 0) index += 3;
         return NAMES[index];
     }
-    // =========================================
 
     function updateStatus(online, message) {
-        document.getElementById('statusDot').className = `dot ${online ? 'online' : 'offline'}`;
-        document.getElementById('statusText').textContent = message || (online ? 'Синхронизация работает' : 'Нет подключения');
+        var dot = document.getElementById('statusDot');
+        var text = document.getElementById('statusText');
+        dot.className = 'dot ' + (online ? 'online' : 'offline');
+        text.textContent = message || (online ? 'Синхронизация работает' : 'Нет подключения');
     }
 
     async function loadFromSupabase() {
         try {
-            const { data, error } = await sb
-                .from('schedule')
-                .select('date_key, time_key, checked');
+            var result = await sb.from('schedule').select('date_key, time_key, checked');
+            var data = result.data;
+            var error = result.error;
 
             if (error) throw error;
 
             state = {};
-            data.forEach(row => {
+            for (var i = 0; i < data.length; i++) {
+                var row = data[i];
                 state[getKey(row.date_key, row.time_key)] = row.checked;
-            });
+            }
 
-            updateStatus(true, `Загружено ${data.length} отметок`);
+            updateStatus(true, 'Загружено ' + data.length + ' отметок');
             render();
         } catch (err) {
             console.error('Ошибка загрузки:', err);
@@ -346,37 +341,40 @@
 
     async function saveToSupabase(dateKey, timeKey, checked) {
         try {
-            const { error } = await sb
-                .from('schedule')
-                .upsert({ date_key: dateKey, time_key: timeKey, checked: checked }, { onConflict: 'date_key, time_key' });
+            var result = await sb.from('schedule').upsert({
+                date_key: dateKey,
+                time_key: timeKey,
+                checked: checked
+            }, { onConflict: 'date_key, time_key' });
+            var error = result.error;
 
             if (error) throw error;
             updateStatus(true, '✅ Сохранено');
         } catch (err) {
             console.error('Ошибка сохранения:', err);
             updateStatus(false, '❌ Ошибка сохранения');
-            const key = getKey(dateKey, timeKey);
+            var key = getKey(dateKey, timeKey);
             state[key] = !checked;
             render();
         }
     }
 
     function getFilteredDates() {
-        const startDate = new Date();
+        var startDate = new Date();
         startDate.setHours(0, 0, 0, 0);
 
-        let endDate = new Date(startDate);
+        var endDate = new Date(startDate);
 
         switch (currentViewMode) {
             case '3days':
                 endDate.setDate(startDate.getDate() + 2);
                 break;
             case 'week': {
-                const dayOfWeek = startDate.getDay();
-                const daysUntilMonday = (dayOfWeek === 0) ? 1 : 1 - dayOfWeek;
-                const monday = new Date(startDate);
+                var dayOfWeek = startDate.getDay();
+                var daysUntilMonday = (dayOfWeek === 0) ? 1 : 1 - dayOfWeek;
+                var monday = new Date(startDate);
                 monday.setDate(startDate.getDate() + daysUntilMonday);
-                const sunday = new Date(monday);
+                var sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
                 endDate = sunday;
                 break;
@@ -387,8 +385,8 @@
                 break;
         }
 
-        const days = [];
-        let current = new Date(startDate);
+        var days = [];
+        var current = new Date(startDate);
         while (current <= endDate) {
             days.push(new Date(current));
             current.setDate(current.getDate() + 1);
@@ -397,89 +395,97 @@
     }
 
     function render() {
-        const container = document.getElementById('calendarContainer');
-        const days = getFilteredDates();
+        var container = document.getElementById('calendarContainer');
+        var days = getFilteredDates();
 
         if (days.length === 0) {
-            container.innerHTML = `<div class="no-days">📭 Нет дней для отображения</div>`;
+            container.innerHTML = '<div class="no-days">📭 Нет дней для отображения</div>';
             return;
         }
 
-        const monthsMap = new Map();
-        days.forEach(date => {
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            if (!monthsMap.has(monthKey)) monthsMap.set(monthKey, []);
-            monthsMap.get(monthKey).push(date);
-        });
+        var monthsMap = {};
+        for (var i = 0; i < days.length; i++) {
+            var date = days[i];
+            var monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+            if (!monthsMap[monthKey]) monthsMap[monthKey] = [];
+            monthsMap[monthKey].push(date);
+        }
 
-        const sortedMonths = Array.from(monthsMap.keys()).sort();
-        const todayStr = getDateStr(new Date());
-        const startDate = new Date();
+        var sortedMonths = Object.keys(monthsMap).sort();
+        var todayStr = getDateStr(new Date());
+        var startDate = new Date();
         startDate.setHours(0, 0, 0, 0);
 
-        let html = '';
-        sortedMonths.forEach(monthKey => {
-            const dates = monthsMap.get(monthKey);
-            const [year, month] = monthKey.split('-');
-            const monthName = new Date(year, month - 1, 1).toLocaleString('ru-RU', { month: 'long' });
+        var html = '';
+        for (var m = 0; m < sortedMonths.length; m++) {
+            var monthKey = sortedMonths[m];
+            var dates = monthsMap[monthKey];
+            var parts = monthKey.split('-');
+            var year = parts[0];
+            var month = parts[1];
+            var monthName = new Date(year, month - 1, 1).toLocaleString('ru-RU', { month: 'long' });
 
-            html += `<div class="month-card">`;
-            html += `<div class="month-title">${monthName} ${year} <span>${dates.length} дн.</span></div>`;
+            html += '<div class="month-card">';
+            html += '<div class="month-title">' + monthName + ' ' + year + ' <span>' + dates.length + ' дн.</span></div>';
 
-            dates.forEach(date => {
-                const dateStr = getDateStr(date);
-                const name = getNameForDate(date, startDate);
-                const isToday = (dateStr === todayStr);
-                const formatted = formatDate(date);
+            for (var d = 0; d < dates.length; d++) {
+                var date = dates[d];
+                var dateStr = getDateStr(date);
+                var name = getNameForDate(date, startDate);
+                var isToday = (dateStr === todayStr);
+                var formatted = formatDate(date);
 
-                html += `<div class="day-row">`;
-                html += `<div class="day-label">`;
-                html += `<span class="name">${name}</span>`;
-                html += `<span class="date-badge">${formatted}</span>`;
-                if (isToday) html += `<span class="today-badge">сегодня</span>`;
-                html += `</div>`;
+                html += '<div class="day-row">';
+                html += '<div class="day-label">';
+                html += '<span class="name">' + name + '</span>';
+                html += '<span class="date-badge">' + formatted + '</span>';
+                if (isToday) html += '<span class="today-badge">сегодня</span>';
+                html += '</div>';
 
-                html += `<div class="check-group">`;
-                TIMES.forEach((time, idx) => {
-                    const key = getKey(dateStr, TIME_KEYS[idx]);
-                    const checked = state[key] === true ? 'checked' : '';
-                    html += `<label class="check-item">`;
-                    html += `<input type="checkbox" data-date="${dateStr}" data-time="${TIME_KEYS[idx]}" ${checked}>`;
-                    html += `${time}`;
-                    html += `</label>`;
-                });
-                html += `</div>`;
-                html += `</div>`;
-            });
+                html += '<div class="check-group">';
+                for (var t = 0; t < TIMES.length; t++) {
+                    var key = getKey(dateStr, TIME_KEYS[t]);
+                    var checked = state[key] === true ? 'checked' : '';
+                    html += '<label class="check-item">';
+                    html += '<input type="checkbox" data-date="' + dateStr + '" data-time="' + TIME_KEYS[t] + '" ' + checked + '>';
+                    html += TIMES[t];
+                    html += '</label>';
+                }
+                html += '</div>';
+                html += '</div>';
+            }
 
-            html += `</div>`;
-        });
+            html += '</div>';
+        }
 
         container.innerHTML = html;
 
-        document.querySelectorAll('#calendarContainer input[type="checkbox"]').forEach(cb => {
+        var checkboxes = document.querySelectorAll('#calendarContainer input[type="checkbox"]');
+        for (var c = 0; c < checkboxes.length; c++) {
+            var cb = checkboxes[c];
             cb.addEventListener('change', function() {
-                const dateKey = this.dataset.date;
-                const timeKey = this.dataset.time;
-                const checked = this.checked;
+                var dateKey = this.dataset.date;
+                var timeKey = this.dataset.time;
+                var checked = this.checked;
                 state[getKey(dateKey, timeKey)] = checked;
                 saveToSupabase(dateKey, timeKey, checked);
             });
-        });
+        }
     }
 
-    document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
-        radio.addEventListener('change', function() {
+    var radios = document.querySelectorAll('input[name="viewMode"]');
+    for (var r = 0; r < radios.length; r++) {
+        radios[r].addEventListener('change', function() {
             if (this.checked) {
                 currentViewMode = this.value;
                 render();
             }
         });
-    });
+    }
 
     loadFromSupabase();
 
-    setInterval(() => {
+    setInterval(function() {
         updateStatus(true, 'Синхронизация активна');
     }, 30000);
 </script>
