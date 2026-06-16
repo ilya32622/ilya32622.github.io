@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Календарь дежурств — общий</title>
+    <title>Календарь дежурств</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -158,211 +158,187 @@
 <div class="container" id="app">
     <h1>
         📅 Общий календарь
-        <small>синхронизация с облаком</small>
+        <small>синхронизация</small>
     </h1>
 
-    <div class="status-bar" id="statusBar">
+    <div class="status-bar">
         <span class="dot offline" id="statusDot"></span>
         <span id="statusText">Подключение к Supabase...</span>
-        <span class="synced" id="syncInfo">⎇ данные общие для всех</span>
+        <span class="synced">⎇ общие данные</span>
     </div>
 
     <div id="calendarContainer">
-        <div class="loading">⏳ Загрузка расписания...</div>
+        <div class="loading">⏳ Загрузка...</div>
     </div>
 
-    <div class="footer">
-        ✅ Отмечайте время — изменения видны всем, кто откроет сайт
-    </div>
+    <div class="footer">✅ Отмечайте — изменения видны всем</div>
 </div>
 
-<!-- Подключаем Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-    (function() {
-        // ======== ВАШИ ДАННЫЕ ИЗ SUPABASE ========
-        const SUPABASE_URL = 'https://nelkcbzsjxinhydqxijx.supabase.co/rest/v1/';        // ЗАМЕНИТЕ!
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbmh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzY0NjIsImV4cCI6MjA5NzIxMjQ2Mn0.-_rVVjxlnChD0iQikxTXK0Rixr-I3VvQt7V3WQ5quD0';                // ЗАМЕНИТЕ!
-        // =========================================
+    // ==================== НАСТРОЙКИ ====================
+    // ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ ИЗ SUPABASE:
+    const SUPABASE_URL = 'https://nelkcbzsjxinhydqxijx.supabase.co/rest/v1/';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbmh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzY0NjIsImV4cCI6MjA5NzIxMjQ2Mn0.-_rVVjxlnChD0iQikxTXK0Rixr-I3VvQt7V3WQ5quD0';
+    // ==================================================
 
-        // ⭐ СОЗДАЁМ КЛИЕНТ Supabase ПРЯМО ЗДЕСЬ
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // СОЗДАЁМ КЛИЕНТ
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const NAMES = ['Илья', 'Ваня', 'Федя'];
-        const TIMES = ['12:00', '15:00', '18:00'];
-        const TIME_KEYS = ['t12', 't15', 't18'];
+    const NAMES = ['Илья', 'Ваня', 'Федя'];
+    const TIMES = ['12:00', '15:00', '18:00'];
+    const TIME_KEYS = ['t12', 't15', 't18'];
 
-        let state = {}; // { "2026-06-17_t12": true, ... }
+    let state = {};
 
-        // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
-        function getDateStr(date) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const d = String(date.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
-        }
+    function getDateStr(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
 
-        function formatDate(date) {
-            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', weekday: 'short' }).replace(/\./g, '');
-        }
+    function formatDate(date) {
+        return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', weekday: 'short' }).replace(/\./g, '');
+    }
 
-        function getKey(dateStr, timeKey) {
-            return `${dateStr}_${timeKey}`;
-        }
+    function getKey(dateStr, timeKey) {
+        return `${dateStr}_${timeKey}`;
+    }
 
-        function getNameForDate(date, startDate) {
-            const diffDays = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-            return NAMES[diffDays % 3];
-        }
+    function getNameForDate(date, startDate) {
+        const diffDays = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+        return NAMES[diffDays % 3];
+    }
 
-        // ----- ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE -----
-        async function loadFromSupabase() {
-            try {
-                const { data, error } = await supabase
-                    .from('schedule')
-                    .select('date_key, time_key, checked');
+    function updateStatus(online, message) {
+        document.getElementById('statusDot').className = `dot ${online ? 'online' : 'offline'}`;
+        document.getElementById('statusText').textContent = message || (online ? 'Синхронизация работает' : 'Нет подключения');
+    }
 
-                if (error) throw error;
+    async function loadFromSupabase() {
+        try {
+            const { data, error } = await supabase
+                .from('schedule')
+                .select('date_key, time_key, checked');
 
-                state = {};
-                data.forEach(row => {
-                    const key = getKey(row.date_key, row.time_key);
-                    state[key] = row.checked;
-                });
+            if (error) throw error;
 
-                updateStatus(true, `Загружено ${data.length} отметок`);
-                render();
-            } catch (err) {
-                console.error('Ошибка загрузки:', err);
-                updateStatus(false, 'Ошибка загрузки: ' + err.message);
-            }
-        }
-
-        // ----- СОХРАНЕНИЕ В SUPABASE -----
-        async function saveToSupabase(dateKey, timeKey, checked) {
-            try {
-                const { error } = await supabase
-                    .from('schedule')
-                    .upsert({
-                        date_key: dateKey,
-                        time_key: timeKey,
-                        checked: checked
-                    }, { onConflict: 'date_key, time_key' });
-
-                if (error) throw error;
-                updateStatus(true, '✅ Сохранено');
-            } catch (err) {
-                console.error('Ошибка сохранения:', err);
-                updateStatus(false, '❌ Ошибка сохранения');
-                // Откатываем локальное состояние
-                const key = getKey(dateKey, timeKey);
-                state[key] = !checked;
-                render();
-            }
-        }
-
-        // ----- ОБНОВЛЕНИЕ СТАТУСА -----
-        function updateStatus(online, message) {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            dot.className = `dot ${online ? 'online' : 'offline'}`;
-            text.textContent = message || (online ? 'Синхронизация работает' : 'Нет подключения');
-        }
-
-        // ----- ОТРИСОВКА КАЛЕНДАРЯ -----
-        function render() {
-            const container = document.getElementById('calendarContainer');
-            const startDate = new Date();
-            startDate.setHours(0, 0, 0, 0);
-
-            const endDate = new Date(startDate);
-            endDate.setFullYear(startDate.getFullYear() + 1); // на 1 год вперёд
-
-            const allDays = [];
-            let current = new Date(startDate);
-            while (current <= endDate) {
-                allDays.push(new Date(current));
-                current.setDate(current.getDate() + 1);
-            }
-
-            // Группировка по месяцам
-            const monthsMap = new Map();
-            allDays.forEach(date => {
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-                if (!monthsMap.has(monthKey)) monthsMap.set(monthKey, []);
-                monthsMap.get(monthKey).push(date);
+            state = {};
+            data.forEach(row => {
+                state[getKey(row.date_key, row.time_key)] = row.checked;
             });
 
-            const sortedMonths = Array.from(monthsMap.keys()).sort();
-            const todayStr = getDateStr(new Date());
+            updateStatus(true, `Загружено ${data.length} отметок`);
+            render();
+        } catch (err) {
+            console.error('Ошибка загрузки:', err);
+            updateStatus(false, 'Ошибка загрузки: ' + err.message);
+            // Всё равно показываем календарь, но с пустыми чекбоксами
+            render();
+        }
+    }
 
-            let html = '';
-            sortedMonths.forEach(monthKey => {
-                const dates = monthsMap.get(monthKey);
-                const [year, month] = monthKey.split('-');
-                const monthName = new Date(year, month-1, 1).toLocaleString('ru-RU', { month: 'long' });
+    async function saveToSupabase(dateKey, timeKey, checked) {
+        try {
+            const { error } = await supabase
+                .from('schedule')
+                .upsert({ date_key: dateKey, time_key: timeKey, checked: checked }, { onConflict: 'date_key, time_key' });
 
-                html += `<div class="month-card">`;
-                html += `<div class="month-title">${monthName} ${year} <span>${dates.length} дн.</span></div>`;
+            if (error) throw error;
+            updateStatus(true, '✅ Сохранено');
+        } catch (err) {
+            console.error('Ошибка сохранения:', err);
+            updateStatus(false, '❌ Ошибка сохранения');
+            // Откатываем
+            const key = getKey(dateKey, timeKey);
+            state[key] = !checked;
+            render();
+        }
+    }
 
-                dates.forEach(date => {
-                    const dateStr = getDateStr(date);
-                    const name = getNameForDate(date, startDate);
-                    const isToday = (dateStr === todayStr);
-                    const formatted = formatDate(date);
+    function render() {
+        const container = document.getElementById('calendarContainer');
+        const startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
 
-                    html += `<div class="day-row">`;
-                    html += `<div class="day-label">`;
-                    html += `<span class="name">${name}</span>`;
-                    html += `<span class="date-badge">${formatted}</span>`;
-                    if (isToday) html += `<span class="today-badge">сегодня</span>`;
-                    html += `</div>`;
+        const endDate = new Date(startDate);
+        endDate.setFullYear(startDate.getFullYear() + 1);
 
-                    html += `<div class="check-group">`;
-                    TIMES.forEach((time, idx) => {
-                        const key = getKey(dateStr, TIME_KEYS[idx]);
-                        const checked = state[key] === true ? 'checked' : '';
-                        html += `<label class="check-item">`;
-                        html += `<input type="checkbox" data-date="${dateStr}" data-time="${TIME_KEYS[idx]}" ${checked}>`;
-                        html += `${time}`;
-                        html += `</label>`;
-                    });
-                    html += `</div>`;
-                    html += `</div>`;
+        const allDays = [];
+        let current = new Date(startDate);
+        while (current <= endDate) {
+            allDays.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+        }
+
+        const monthsMap = new Map();
+        allDays.forEach(date => {
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+            if (!monthsMap.has(monthKey)) monthsMap.set(monthKey, []);
+            monthsMap.get(monthKey).push(date);
+        });
+
+        const sortedMonths = Array.from(monthsMap.keys()).sort();
+        const todayStr = getDateStr(new Date());
+
+        let html = '';
+        sortedMonths.forEach(monthKey => {
+            const dates = monthsMap.get(monthKey);
+            const [year, month] = monthKey.split('-');
+            const monthName = new Date(year, month-1, 1).toLocaleString('ru-RU', { month: 'long' });
+
+            html += `<div class="month-card">`;
+            html += `<div class="month-title">${monthName} ${year} <span>${dates.length} дн.</span></div>`;
+
+            dates.forEach(date => {
+                const dateStr = getDateStr(date);
+                const name = getNameForDate(date, startDate);
+                const isToday = (dateStr === todayStr);
+                const formatted = formatDate(date);
+
+                html += `<div class="day-row">`;
+                html += `<div class="day-label">`;
+                html += `<span class="name">${name}</span>`;
+                html += `<span class="date-badge">${formatted}</span>`;
+                if (isToday) html += `<span class="today-badge">сегодня</span>`;
+                html += `</div>`;
+
+                html += `<div class="check-group">`;
+                TIMES.forEach((time, idx) => {
+                    const key = getKey(dateStr, TIME_KEYS[idx]);
+                    const checked = state[key] === true ? 'checked' : '';
+                    html += `<label class="check-item">`;
+                    html += `<input type="checkbox" data-date="${dateStr}" data-time="${TIME_KEYS[idx]}" ${checked}>`;
+                    html += `${time}`;
+                    html += `</label>`;
                 });
-
+                html += `</div>`;
                 html += `</div>`;
             });
 
-            container.innerHTML = html;
+            html += `</div>`;
+        });
 
-            // ----- ПРИВЯЗКА СОБЫТИЙ К ЧЕКБОКСАМ -----
-            document.querySelectorAll('#calendarContainer input[type="checkbox"]').forEach(cb => {
-                cb.addEventListener('change', function(e) {
-                    const dateKey = this.dataset.date;
-                    const timeKey = this.dataset.time;
-                    const checked = this.checked;
-                    const fullKey = getKey(dateKey, timeKey);
+        container.innerHTML = html;
 
-                    // Оптимистичное обновление UI
-                    state[fullKey] = checked;
-
-                    // Сохраняем в Supabase
-                    saveToSupabase(dateKey, timeKey, checked);
-                });
+        document.querySelectorAll('#calendarContainer input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const dateKey = this.dataset.date;
+                const timeKey = this.dataset.time;
+                const checked = this.checked;
+                state[getKey(dateKey, timeKey)] = checked;
+                saveToSupabase(dateKey, timeKey, checked);
             });
-        }
+        });
+    }
 
-        // ----- ЗАПУСК -----
-        loadFromSupabase();
+    // ЗАПУСК
+    loadFromSupabase();
 
-        // Обновление статуса "жив" каждые 30 сек
-        setInterval(() => {
-            updateStatus(true, 'Синхронизация активна');
-        }, 30000);
-
-    })();
+    setInterval(() => {
+        updateStatus(true, 'Синхронизация активна');
+    }, 30000);
 </script>
 </body>
-</html>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbmh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzY0NjIsImV4cCI6MjA5NzIxMjQ2Mn0.-_rVVjxlnChD0iQikxTXK0Rixr-I3VvQt7V3WQ5quD0
+</html>
