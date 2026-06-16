@@ -276,6 +276,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 <script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+</script>
+<script>
     // ==================== НАСТРОЙКИ ====================
     const SUPABASE_URL = 'https://nelkcbzsjxinhydqxijx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbnh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5MjU0MDYsImV4cCI6MjA2MTUwMTQwNn0.n1ZlU3fOU-dLWDJdxBUnmwRKKtibh64-Qj4cO-xLxNg';
@@ -288,7 +291,7 @@
     const TIME_KEYS = ['t12', 't15', 't18'];
 
     let state = {};
-    let currentViewMode = '3days'; // '3days' | 'week' | 'all'
+    let currentViewMode = '3days';
 
     function getDateStr(date) {
         const y = date.getFullYear();
@@ -305,10 +308,14 @@
         return `${dateStr}_${timeKey}`;
     }
 
+    // ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ==========
     function getNameForDate(date, startDate) {
         const diffDays = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-        return NAMES[diffDays % 3];
+        let index = diffDays % 3;
+        if (index < 0) index += 3; // -1 → 2, -2 → 1
+        return NAMES[index];
     }
+    // =========================================
 
     function updateStatus(online, message) {
         document.getElementById('statusDot').className = `dot ${online ? 'online' : 'offline'}`;
@@ -354,7 +361,6 @@
         }
     }
 
-    // ----- ФУНКЦИЯ ФИЛЬТРАЦИИ ДАТ -----
     function getFilteredDates() {
         const startDate = new Date();
         startDate.setHours(0, 0, 0, 0);
@@ -363,15 +369,13 @@
 
         switch (currentViewMode) {
             case '3days':
-                endDate.setDate(startDate.getDate() + 2); // сегодня + 2 дня = 3 дня
+                endDate.setDate(startDate.getDate() + 2);
                 break;
             case 'week': {
-                // Находим ближайший понедельник (если сегодня воскресенье — понедельник завтра)
-                const dayOfWeek = startDate.getDay(); // 0=вс, 1=пн...
+                const dayOfWeek = startDate.getDay();
                 const daysUntilMonday = (dayOfWeek === 0) ? 1 : 1 - dayOfWeek;
                 const monday = new Date(startDate);
                 monday.setDate(startDate.getDate() + daysUntilMonday);
-                // Воскресенье = понедельник + 6 дней
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
                 endDate = sunday;
@@ -383,7 +387,6 @@
                 break;
         }
 
-        // Формируем массив дней от startDate до endDate
         const days = [];
         let current = new Date(startDate);
         while (current <= endDate) {
@@ -395,7 +398,6 @@
 
     function render() {
         const container = document.getElementById('calendarContainer');
-
         const days = getFilteredDates();
 
         if (days.length === 0) {
@@ -403,7 +405,6 @@
             return;
         }
 
-        // Группировка по месяцам
         const monthsMap = new Map();
         days.forEach(date => {
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -456,7 +457,6 @@
 
         container.innerHTML = html;
 
-        // Привязка событий
         document.querySelectorAll('#calendarContainer input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', function() {
                 const dateKey = this.dataset.date;
@@ -468,7 +468,6 @@
         });
     }
 
-    // ----- ПОДПИСКА НА ИЗМЕНЕНИЕ ФИЛЬТРОВ -----
     document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
         radio.addEventListener('change', function() {
             if (this.checked) {
@@ -478,7 +477,6 @@
         });
     });
 
-    // ----- ЗАПУСК -----
     loadFromSupabase();
 
     setInterval(() => {
