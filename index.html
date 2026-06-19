@@ -275,12 +275,15 @@
     // ↓↓↓ ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE (Settings → API) ↓↓↓
     // ============================================================
     const SUPABASE_URL = 'https://nelkcbzsjxinhydqxijx.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbmh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzY0NjIsImV4cCI6MjA5NzIxMjQ2Mn0.-_rVVjxlnChD0iQikxTXK0Rixr-I3VvQt7V3WQ5quD0';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbGtjYnpzanhpbnh5ZHF4aWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5MjU0MDYsImV4cCI6MjA2MTUwMTQwNn0.n1ZlU3fOU-dLWDJdxBUnmwRKKtibh64-Qj4cO-xLxNg';
     // ============================================================
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const NAMES = ['Ваня', 'Федя', 'Илья'];
+    // ========== ПОРЯДОК ИМЁН (меняйте здесь) ==========
+    const NAMES = ['Ваня', 'Федя', 'Илья'];  // Сегодня — Ваня
+    // ==================================================
+
     const TIMES = ['12:00', '15:00', '18:00'];
     const TIME_KEYS = ['t12', 't15', 't18'];
 
